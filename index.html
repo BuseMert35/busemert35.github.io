@@ -46,12 +46,13 @@
         }
         .obstacle {
             font-size: 30px;
-            line-height: 1; /* Adjust line-height for better emoji centering */
+            line-height: 1em; /* Ensure consistent emoji rendering */
             text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+            display: inline-block; /* Helps with consistent rendering on some mobile browsers */
         }
         .goal {
             font-size: 35px;
-            line-height: 1;
+            line-height: 1em;
             text-shadow: 0 0 10px rgba(255, 204, 0, 0.7); /* Yellow glow */
         }
         .message-overlay {
@@ -70,6 +71,9 @@
             color: var(--color-success);
         }
         #collision-box h2 {
+            color: var(--color-primary);
+        }
+        #game-over-box h2 { /* Added styling for game over box */
             color: var(--color-primary);
         }
         #gemini-note {
@@ -132,6 +136,15 @@
             cursor: grabbing;
             background-color: #c53030; /* Darker red when active */
         }
+        #music-link-container {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #fde6e6;
+        }
+        #music-link-container a {
+            color: #a7f3d0; /* Light green for link */
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body class="flex flex-col justify-center items-center min-h-screen p-4">
@@ -155,14 +168,27 @@
             <div id="gemini-note" class="bg-white bg-opacity-10 rounded-lg p-4 mt-4 w-full max-w-md text-sm md:text-base"></div>
             <div id="loader" class="loader hidden border-4 border-t-4 border-gray-300 border-t-orange-500 rounded-full w-8 h-8 animate-spin mt-4"></div>
             <button id="generate-note-btn" class="btn-action px-6 py-3 rounded-lg font-semibold text-lg mt-6">✨ Buse'ye Özel Bir Not Oluştur</button>
+            <div id="music-link-container" class="hidden">Bu an için özel şarkınız: <a href="https://youtu.be/WiFFLGyT59I?si=qf7RvqGvofWyA1GI" target="_blank">Dinlemek için tıklayın!</a></div>
             <button id="play-again-success-btn" class="btn-action px-6 py-3 rounded-lg font-semibold text-lg mt-4">Tekrar Oyna</button>
         </div>
         
         <!-- Çarpışma Mesajı -->
         <div id="collision-box" class="message-overlay absolute inset-0 flex-col p-5 rounded-xl hidden">
             <h2 class="text-3xl md:text-4xl mb-4">Eyvah!</h2>
-            <p class="text-lg md:text-xl text-gray-100 mb-4">Kırık bir kalbe dokundun. En baştan deniyor...</p>
+            <p class="text-lg md:text-xl text-gray-100 mb-4">Kırık bir kalbe dokundun. Canın azaldı!</p>
             <button id="try-again-collision-btn" class="btn-action px-6 py-3 rounded-lg font-semibold text-lg mt-6">Tekrar Dene</button>
+        </div>
+
+        <!-- Oyun Bitti Mesajı -->
+        <div id="game-over-box" class="message-overlay absolute inset-0 flex-col p-5 rounded-xl hidden">
+            <h2 class="text-3xl md:text-4xl mb-4">Oyun Bitti!</h2>
+            <p class="text-lg md:text-xl text-gray-100 mb-4" id="game-over-message">Mert ile Buse ne yazık ki ayrıldı. Mert ömür boyu aşk acısı çekecek.</p>
+            <button id="play-again-gameover-btn" class="btn-action px-6 py-3 rounded-lg font-semibold text-lg mt-6">Tekrar Oyna</button>
+        </div>
+
+        <!-- Can Sayacı -->
+        <div id="lives-display" class="absolute top-2 left-2 bg-white bg-opacity-70 px-3 py-1 rounded-full text-sm md:text-base font-bold text-red-600 shadow-md">
+            Can: <span id="lives-count">4</span> ❤️
         </div>
 
     </div>
@@ -179,25 +205,31 @@
         const gameContainer = document.getElementById('game-container');
         const successBox = document.getElementById('success-box');
         const collisionBox = document.getElementById('collision-box');
+        const gameOverBox = document.getElementById('game-over-box');
+        const gameOverMessageEl = document.getElementById('game-over-message');
         const generateNoteBtn = document.getElementById('generate-note-btn');
         const geminiNoteEl = document.getElementById('gemini-note');
         const loader = document.getElementById('loader');
+        const livesDisplay = document.getElementById('lives-count');
+        const musicLinkContainer = document.getElementById('music-link-container'); // New element for music link
 
         // Buttons
         const playAgainSuccessBtn = document.getElementById('play-again-success-btn');
         const tryAgainCollisionBtn = document.getElementById('try-again-collision-btn');
+        const playAgainGameOverBtn = document.getElementById('play-again-gameover-btn');
 
         // Player settings
         let playerX = 10;
         let playerY = 10;
-        const playerSpeed = 5; // Adjusted player speed for joystick control (can be fine-tuned)
+        const playerSpeed = 5;
         let gameRunning = false;
-        let obstacles = []; // Array to hold dynamically created obstacle elements
-        const numObstacles = 3; // Number of obstacles
+        let lives = 4;
+        let obstacles = [];
+        const numObstacles = 7;
 
         // Obstacle movement variables
-        const obstacleSpeed = 1.5; // Speed of moving obstacles
-        let animationFrameId; // To store the requestAnimationFrame ID
+        const obstacleSpeed = 1.5;
+        let animationFrameId;
 
         // Joystick elements
         const joystickContainer = document.getElementById('joystick-container');
@@ -206,9 +238,19 @@
         let joystickCenterX, joystickCenterY;
         let joystickRadius;
 
+        // Static reconciliation notes
+        const staticNotes = [
+            "Buse'm, bu çiçek kalbimdeki pişmanlığın bir simgesi. Seni çok seviyorum ve sensiz yapamıyorum. Lütfen beni affet.",
+            "Sevgili Buse, aramızdaki bu kırgınlık beni çok üzüyor. Bu çiçekle birlikte sana olan sevgimi ve barışma dileğimi gönderiyorum.",
+            "Canım Buse, hatalarımı anladım. Bu çiçek, sana olan sevgimin ve barışma isteğimin en saf hali. Lütfen bir şans daha ver.",
+            "Buse'cim, sensiz geçen her an eksik. Bu çiçekle birlikte kalbimi de sana uzatıyorum. Affet beni.",
+            "Aşkım, bu çiçekle birlikte sana olan özlemimi ve barışma umudumu gönderiyorum. Her şeyden çok seni seviyorum."
+        ];
+
         // Initial player position
         player.style.left = `${playerX}px`;
         player.style.top = `${playerY}px`;
+        livesDisplay.textContent = lives;
 
         /**
          * Initializes the joystick's position and radius.
@@ -217,7 +259,7 @@
             const containerRect = joystickContainer.getBoundingClientRect();
             joystickCenterX = containerRect.left + containerRect.width / 2;
             joystickCenterY = containerRect.top + containerRect.height / 2;
-            joystickRadius = containerRect.width / 2; // Radius of the container
+            joystickRadius = containerRect.width / 2;
             
             // Set initial thumb position to center
             joystickThumb.style.left = `${joystickContainer.offsetWidth / 2 - joystickThumb.offsetWidth / 2}px`;
@@ -231,17 +273,16 @@
         function createObstacle() {
             const obstacle = document.createElement('div');
             obstacle.classList.add('obstacle', 'absolute');
-            obstacle.textContent = '�';
+            obstacle.textContent = '💔';
             
             // Random initial position within container bounds
             const containerRect = gameContainer.getBoundingClientRect();
-            const obstacleSize = 35; // Approximate size of the emoji
+            const obstacleSize = 35;
             
             let randomX = Math.random() * (containerRect.width - obstacleSize);
             let randomY = Math.random() * (containerRect.height - obstacleSize);
 
             // Ensure obstacles don't spawn on player or goal initially
-            // Using relative positions to gameContainer
             const playerRelativeX = playerX;
             const playerRelativeY = playerY;
             const goalRelativeX = parseFloat(goal.style.right) ? containerRect.width - parseFloat(goal.style.right) - goal.offsetWidth : 0;
@@ -261,7 +302,7 @@
             obstacle.style.top = `${randomY}px`;
             
             // Random velocity for movement
-            obstacle.vx = (Math.random() - 0.5) * 2 * obstacleSpeed; // -obstacleSpeed to +obstacleSpeed
+            obstacle.vx = (Math.random() - 0.5) * 2 * obstacleSpeed;
             obstacle.vy = (Math.random() - 0.5) * 2 * obstacleSpeed;
 
             gameContainer.appendChild(obstacle);
@@ -277,7 +318,7 @@
             obstacles.forEach(obstacle => {
                 let currentX = parseFloat(obstacle.style.left);
                 let currentY = parseFloat(obstacle.style.top);
-                const obstacleSize = obstacle.offsetWidth; // Get actual rendered width
+                const obstacleSize = obstacle.offsetWidth;
 
                 let newX = currentX + obstacle.vx;
                 let newY = currentY + obstacle.vy;
@@ -285,12 +326,12 @@
                 // Bounce off horizontal walls
                 if (newX + obstacleSize > containerRect.width || newX < 0) {
                     obstacle.vx *= -1;
-                    newX = currentX + obstacle.vx; // Re-calculate with new velocity
+                    newX = currentX + obstacle.vx;
                 }
                 // Bounce off vertical walls
                 if (newY + obstacleSize > containerRect.height || newY < 0) {
                     obstacle.vy *= -1;
-                    newY = currentY + obstacle.vy; // Re-calculate with new velocity
+                    newY = currentY + obstacle.vy;
                 }
 
                 obstacle.style.left = `${newX}px`;
@@ -385,8 +426,16 @@
          */
         function handleCollision() {
             if (!gameRunning) return; // Prevent multiple collision triggers
-            gameRunning = false;
-            showOverlay(collisionBox);
+            gameRunning = false; // Pause game temporarily
+            lives--;
+            livesDisplay.textContent = lives;
+
+            if (lives <= 0) {
+                gameOverMessageEl.textContent = "Mert ile Buse ne yazık ki ayrıldı. Mert ömür boyu aşk acısı çekecek.";
+                showOverlay(gameOverBox);
+            } else {
+                showOverlay(collisionBox);
+            }
         }
 
         /**
@@ -396,6 +445,7 @@
             if (!gameRunning) return; // Prevent multiple success triggers
             gameRunning = false;
             showOverlay(successBox);
+            musicLinkContainer.classList.remove('hidden'); // Show the music link
         }
         
         /**
@@ -403,34 +453,38 @@
          */
         function showOverlay(overlayElement) {
             // Hide all overlays first
-            [successBox, collisionBox].forEach(box => box.classList.remove('visible', 'flex'));
-            [successBox, collisionBox].forEach(box => box.classList.add('hidden'));
+            [successBox, collisionBox, gameOverBox].forEach(box => box.classList.remove('visible', 'flex'));
+            [successBox, collisionBox, gameOverBox].forEach(box => box.classList.add('hidden'));
 
             overlayElement.classList.remove('hidden');
             // Use a timeout to ensure display:flex is applied before opacity transition
             setTimeout(() => {
                 overlayElement.classList.add('visible', 'flex');
-            }, 10); // Small delay
+            }, 10);
         }
 
         /**
          * Hides all message overlays.
          */
         function hideOverlays() {
-            [successBox, collisionBox].forEach(box => {
+            [successBox, collisionBox, gameOverBox].forEach(box => {
                 box.classList.remove('visible', 'flex');
                 box.classList.add('hidden');
             });
+            musicLinkContainer.classList.add('hidden'); // Hide the music link
         }
 
         /**
-         * Resets the game to its initial state.
+         * Resets the game to its initial state (full reset).
+         * This is called when "Play Again" is clicked.
          */
         function resetGame() {
             playerX = 10;
             playerY = 10;
             player.style.left = `${playerX}px`;
             player.style.top = `${playerY}px`;
+            lives = 4; // Reset lives to 4
+            livesDisplay.textContent = lives;
             gameRunning = true;
             hideOverlays();
 
@@ -440,81 +494,60 @@
             for (let i = 0; i < numObstacles; i++) {
                 createObstacle();
             }
-            // Reset Gemini note display
             geminiNoteEl.textContent = '';
-            generateNoteBtn.style.display = 'block'; // Show the button again
+            generateNoteBtn.style.display = 'block';
             generateNoteBtn.disabled = false;
             loader.classList.add('hidden');
         }
+
+        /**
+         * Continues the game after a collision without resetting lives.
+         * This is called when "Tekrar Dene" is clicked after a collision.
+         */
+        function continueGameAfterCollision() {
+            playerX = 10; // Reset player position after collision
+            playerY = 10;
+            player.style.left = `${playerX}px`;
+            player.style.top = `${playerY}px`;
+            gameRunning = true; // Resume game
+            hideOverlays(); // Hide collision box
+        }
         
         /**
-         * Generates a reconciliation note using the Gemini API.
+         * Generates a reconciliation note using the static notes array.
          */
         async function generateReconciliationNote() {
             generateNoteBtn.disabled = true;
             loader.classList.remove('hidden');
-            geminiNoteEl.textContent = ''; // Clear previous note
+            geminiNoteEl.textContent = '';
 
-            const prompt = "Mert, sevgilisi Buse ile kavga etti ve barışmak için ona bir çiçek aldı. Şimdi ona romantik, içten ve kısa bir barışma notu yazmak istiyor. Sadece notu yaz, ek bir açıklama yapma.";
+            const randomIndex = Math.floor(Math.random() * staticNotes.length);
+            const selectedNote = staticNotes[randomIndex];
             
-            let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
-            const payload = { contents: chatHistory };
-            const apiKey = ""; // API key will be provided by Canvas runtime
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-            
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    throw new Error(`API hatası: ${response.statusText}`);
-                }
-
-                const result = await response.json();
-                
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    const text = result.candidates[0].content.parts[0].text;
-                    geminiNoteEl.textContent = text.trim();
-                } else {
-                    geminiNoteEl.textContent = "Özür dilerim, şu an ilham perilerim grevde. Ama seni sevdiğimi bil yeter. ❤️";
-                }
-
-            } catch (error) {
-                console.error("Gemini API çağrısı başarısız:", error);
-                geminiNoteEl.textContent = "Şu anda romantik kelimeler bulmakta zorlanıyorum, ama bu çiçek kalbimden geliyor.";
-            } finally {
+            setTimeout(() => {
+                geminiNoteEl.textContent = selectedNote;
                 loader.classList.add('hidden');
-                generateNoteBtn.style.display = 'none'; // Hide the button after generation
-            }
+                generateNoteBtn.style.display = 'none';
+            }, 500);
         }
 
         // Joystick Event Handlers
         function onJoystickStart(e) {
             if (!gameRunning) return;
             isJoystickActive = true;
-            // Prevent default touch behavior (e.g., scrolling)
             e.preventDefault(); 
-            // Recalculate joystick center on touch start to handle potential resize/reposition
             initializeJoystick(); 
         }
 
         function onJoystickMove(e) {
             if (!isJoystickActive || !gameRunning) return;
 
-            // Get current touch/mouse position
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-            // Calculate distance from joystick center
             let deltaX = clientX - joystickCenterX;
             let deltaY = clientY - joystickCenterY;
 
-            // Limit thumb position within the joystick container
             const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
             if (distance > joystickRadius) {
                 const angle = Math.atan2(deltaY, deltaX);
@@ -522,12 +555,9 @@
                 deltaY = joystickRadius * Math.sin(angle);
             }
 
-            // Update thumb position
             joystickThumb.style.left = `${joystickContainer.offsetWidth / 2 - joystickThumb.offsetWidth / 2 + deltaX}px`;
             joystickThumb.style.top = `${joystickContainer.offsetHeight / 2 - joystickThumb.offsetHeight / 2 + deltaY}px`;
 
-            // Calculate player movement based on joystick position
-            // Normalize deltaX and deltaY to a range of -1 to 1, then multiply by playerSpeed
             const normalizedDx = deltaX / joystickRadius;
             const normalizedDy = deltaY / joystickRadius;
             updatePlayerPosition(normalizedDx * playerSpeed, normalizedDy * playerSpeed);
@@ -535,10 +565,8 @@
 
         function onJoystickEnd() {
             isJoystickActive = false;
-            // Reset thumb to center
             joystickThumb.style.left = `${joystickContainer.offsetWidth / 2 - joystickThumb.offsetWidth / 2}px`;
             joystickThumb.style.top = `${joystickContainer.offsetHeight / 2 - joystickThumb.offsetHeight / 2}px`;
-            // Stop player movement
             updatePlayerPosition(0, 0);
         }
 
@@ -549,7 +577,6 @@
         joystickContainer.addEventListener('mousedown', onJoystickStart);
         joystickContainer.addEventListener('mousemove', onJoystickMove);
         joystickContainer.addEventListener('mouseup', onJoystickEnd);
-        // Also listen for mouseleave to stop movement if mouse leaves the container while dragging
         joystickContainer.addEventListener('mouseleave', onJoystickEnd);
 
 
@@ -558,14 +585,16 @@
 
         // Play Again buttons
         playAgainSuccessBtn.addEventListener('click', resetGame);
-        tryAgainCollisionBtn.addEventListener('click', resetGame);
+        playAgainGameOverBtn.addEventListener('click', resetGame);
+        // Changed this to continueGameAfterCollision
+        tryAgainCollisionBtn.addEventListener('click', continueGameAfterCollision);
 
 
         // Initialize game on load
         window.onload = function() {
-            resetGame(); // Set up initial game state and obstacles
-            initializeJoystick(); // Initialize joystick position
-            gameLoop(); // Start the animation loop
+            resetGame();
+            initializeJoystick();
+            gameLoop();
         };
 
         // Re-initialize joystick on window resize to ensure correct positioning
