@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mert ve Buse: Barışma Yolu</title>
+    <!-- Google Fonts: Poppins ve Pacifico -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* Genel Sayfa Stilleri */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #fde6e6; /* Açık pembe arka plan */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #5c3b3b;
+            text-align: center;
+            padding: 1rem;
+            overflow: hidden;
+        }
+
+        /* Başlık Stili */
+        h1 {
+            font-family: 'Pacifico', cursive;
+            color: #e53e3e; /* Kırmızı */
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Talimatlar Stili */
+        p {
+            margin-top: 0;
+            font-size: 1rem;
+            color: #7a4a4a;
+        }
+
+        /* Oyun Alanı Konteyneri */
+        #game-container {
+            width: 90vw;
+            height: 60vh;
+            max-width: 500px;
+            max-height: 350px;
+            background-color: #fff0f0;
+            border: 5px solid #ffb3b3;
+            border-radius: 15px;
+            position: relative;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden; /* Mesaj kutularının taşmasını engeller */
+        }
+
+        /* Oyuncu (Mert) Stili */
+        #player {
+            width: 30px;
+            height: 30px;
+            background-color: #4299e1; /* Mavi */
+            border-radius: 50%;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            transition: all 0.1s linear;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: white;
+            z-index: 10;
+        }
+
+        /* Engel (Kırık Kalpler) Stili */
+        .obstacle {
+            width: 35px;
+            height: 35px;
+            position: absolute;
+            font-size: 30px;
+            line-height: 35px;
+            text-align: center;
+        }
+
+        /* Hedef (Çiçek) Stili */
+        #goal {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            font-size: 35px;
+            line-height: 40px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        /* Genel Mesaj Kutusu Stili */
+        .message-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.75);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s, visibility 0.5s;
+            padding: 20px;
+            z-index: 20;
+        }
+
+        .message-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .message-overlay h2 {
+            font-family: 'Pacifico', cursive;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .message-overlay p {
+            font-size: 1.1rem;
+            color: #f7fafc; /* Çok açık gri */
+        }
+        
+        /* Başarı Mesaj Kutusu Özel Stilleri */
+        #success-box h2 {
+             color: #68d391; /* Yeşil */
+        }
+        #gemini-note {
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 1rem;
+            min-height: 80px;
+            font-style: italic;
+            color: #fde6e6;
+        }
+
+        /* Çarpışma Mesaj Kutusu Özel Stilleri */
+        #collision-box h2 {
+            color: #e53e3e; /* Kırmızı */
+        }
+        
+        /* Gemini Butonu */
+        #generate-note-btn {
+            background-color: #f6ad55;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: background-color 0.3s;
+        }
+        #generate-note-btn:hover {
+            background-color: #dd6b20;
+        }
+        #generate-note-btn:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+        }
+
+        /* Yükleme Animasyonu */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #f6ad55;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-top: 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .hidden {
+            display: none;
+        }
+
+        /* Mobil Kontrol Butonları */
+        #controls {
+            margin-top: 1rem;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 10px;
+            width: 180px;
+        }
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            background-color: #ffb3b3;
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transition: all 0.2s;
+        }
+        .control-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+        #btn-up { grid-column: 2 / 3; grid-row: 1 / 2; }
+        #btn-left { grid-column: 1 / 2; grid-row: 2 / 3; }
+        #btn-down { grid-column: 2 / 3; grid-row: 2 / 3; }
+        #btn-right { grid-column: 3 / 4; grid-row: 2 / 3; }
+
+    </style>
+</head>
+<body>
+
+    <h1>Barışma Yolu</h1>
+    <p>Mert'in Buse için çiçeği almasına yardım et. Kırık kalplere dikkat et!</p>
+
+    <div id="game-container">
+        <!-- Oyuncu (Mert) -->
+        <div id="player">M</div>
+
+        <!-- Engeller (Kırık Kalpler) -->
+        <div class="obstacle" style="top: 50px; left: 80px;">💔</div>
+        <div class="obstacle" style="top: 150px; left: 40px;">💔</div>
+        <div class="obstacle" style="top: 200px; left: 150px;">💔</div>
+        <div class="obstacle" style="top: 100px; left: 250px;">💔</div>
+        <div class="obstacle" style="top: 50px; left: 350px;">💔</div>
+        <div class="obstacle" style="top: 250px; left: 300px;">💔</div>
+
+        <!-- Hedef (Çiçek) -->
+        <div id="goal" style="bottom: 10px; right: 10px;">🌻</div>
+
+        <!-- Başarı Mesajı -->
+        <div id="success-box" class="message-overlay">
+            <h2>Başardın!</h2>
+            <p>Mert çiçeği aldı! Şimdi Buse'nin kalbini geri kazanma zamanı.</p>
+            <div id="gemini-note"></div>
+            <div id="loader" class="loader hidden"></div>
+            <button id="generate-note-btn">✨ Buse'ye Özel Bir Not Oluştur</button>
+        </div>
+        
+        <!-- Çarpışma Mesajı -->
+        <div id="collision-box" class="message-overlay">
+            <h2>Eyvah!</h2>
+            <p>Kırık bir kalbe dokundun. Mert üzüldü, en baştan deniyor...</p>
+        </div>
+
+    </div>
+    
+    <!-- Mobil Kontroller -->
+    <div id="controls">
+        <button id="btn-up" class="control-btn">▲</button>
+        <button id="btn-left" class="control-btn">◄</button>
+        <button id="btn-down" class="control-btn">▼</button>
+        <button id="btn-right" class="control-btn">►</button>
+    </div>
+
+    <script>
+        // Oyun elemanlarını seçme
+        const player = document.getElementById('player');
+        const goal = document.getElementById('goal');
+        const obstacles = document.querySelectorAll('.obstacle');
+        const gameContainer = document.getElementById('game-container');
+        const successBox = document.getElementById('success-box');
+        const collisionBox = document.getElementById('collision-box');
+        const generateNoteBtn = document.getElementById('generate-note-btn');
+        const geminiNoteEl = document.getElementById('gemini-note');
+        const loader = document.getElementById('loader');
+
+        // Oyuncu ayarları
+        let playerX = 10;
+        let playerY = 10;
+        const playerSpeed = 15; // Hareket hızı
+        let gameOver = false;
+
+        // Başlangıç pozisyonunu ayarla
+        player.style.left = `${playerX}px`;
+        player.style.top = `${playerY}px`;
+
+        /**
+         * İki elementin çarpışıp çarpışmadığını kontrol eder.
+         */
+        function isColliding(el1, el2) {
+            const rect1 = el1.getBoundingClientRect();
+            const rect2 = el2.getBoundingClientRect();
+            return !(
+                rect1.right < rect2.left ||
+                rect1.left > rect2.right ||
+                rect1.bottom < rect2.top ||
+                rect1.top > rect2.bottom
+            );
+        }
+
+        /**
+         * Oyuncuyu hareket ettiren ve çarpışmaları kontrol eden fonksiyon.
+         */
+        function movePlayer(dx, dy) {
+            if (gameOver) return;
+
+            const newX = playerX + dx;
+            const newY = playerY + dy;
+            
+            const containerRect = gameContainer.getBoundingClientRect();
+            const playerRect = player.getBoundingClientRect();
+
+            if (newX < 0 || newY < 0 || newX + playerRect.width > containerRect.width || newY + playerRect.height > containerRect.height) {
+                return;
+            }
+            
+            playerX = newX;
+            playerY = newY;
+            player.style.left = `${playerX}px`;
+            player.style.top = `${playerY}px`;
+
+            checkCollisions();
+        }
+        
+        /**
+         * Tüm çarpışmaları kontrol eder.
+         */
+        function checkCollisions() {
+            obstacles.forEach(obstacle => {
+                if (isColliding(player, obstacle)) {
+                    handleCollision();
+                }
+            });
+
+            if (isColliding(player, goal)) {
+                handleSuccess();
+            }
+        }
+
+        /**
+         * Çarpışma durumunu yönetir.
+         */
+        function handleCollision() {
+            gameOver = true;
+            collisionBox.classList.add('visible');
+            setTimeout(() => {
+                collisionBox.classList.remove('visible');
+                resetGame();
+            }, 2500); // 2.5 saniye sonra mesajı gizle ve oyunu sıfırla
+        }
+
+        /**
+         * Başarı durumunu yönetir.
+         */
+        function handleSuccess() {
+            gameOver = true;
+            successBox.classList.add('visible');
+        }
+        
+        /**
+         * Oyunu başlangıç durumuna sıfırlar.
+         */
+        function resetGame() {
+            playerX = 10;
+            playerY = 10;
+            player.style.left = `${playerX}px`;
+            player.style.top = `${playerY}px`;
+            gameOver = false;
+        }
+        
+        /**
+         * Gemini API'sini kullanarak barışma notu oluşturur.
+         */
+        async function generateReconciliationNote() {
+            generateNoteBtn.disabled = true;
+            loader.classList.remove('hidden');
+            geminiNoteEl.textContent = '';
+
+            const prompt = "Mert, sevgilisi Buse ile kavga etti ve barışmak için ona bir çiçek aldı. Şimdi ona romantik, içten ve kısa bir barışma notu yazmak istiyor. Sadece notu yaz, ek bir açıklama yapma.";
+            
+            let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const payload = { contents: chatHistory };
+            const apiKey = ""; // API anahtarı Canvas tarafından sağlanacaktır
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API hatası: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    geminiNoteEl.textContent = text.trim();
+                } else {
+                    geminiNoteEl.textContent = "Özür dilerim, şu an ilham perilerim grevde. Ama seni sevdiğimi bil yeter. ❤️";
+                }
+
+            } catch (error) {
+                console.error("Gemini API çağrısı başarısız:", error);
+                geminiNoteEl.textContent = "Şu anda romantik kelimeler bulmakta zorlanıyorum, ama bu çiçek kalbimden geliyor.";
+            } finally {
+                loader.classList.add('hidden');
+                // Butonu tekrar aktif etmeye gerek yok, tek seferlik bir jest.
+                generateNoteBtn.style.display = 'none'; // Butonu gizle
+            }
+        }
+
+        // Klavye olaylarını dinleme
+        document.addEventListener('keydown', (e) => {
+            switch (e.key) {
+                case 'ArrowUp': case 'w': movePlayer(0, -playerSpeed); break;
+                case 'ArrowDown': case 's': movePlayer(0, playerSpeed); break;
+                case 'ArrowLeft': case 'a': movePlayer(-playerSpeed, 0); break;
+                case 'ArrowRight': case 'd': movePlayer(playerSpeed, 0); break;
+            }
+        });
+
+        // Mobil kontrol butonlarını dinleme
+        document.getElementById('btn-up').addEventListener('click', () => movePlayer(0, -playerSpeed));
+        document.getElementById('btn-down').addEventListener('click', () => movePlayer(0, playerSpeed));
+        document.getElementById('btn-left').addEventListener('click', () => movePlayer(-playerSpeed, 0));
+        document.getElementById('btn-right').addEventListener('click', () => movePlayer(playerSpeed, 0));
+
+        // Gemini butonu olay dinleyicisi
+        generateNoteBtn.addEventListener('click', generateReconciliationNote);
+
+    </script>
+
+</body>
+</html>
