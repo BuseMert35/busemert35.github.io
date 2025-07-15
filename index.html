@@ -4,273 +4,178 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mert ve Buse: Barışma Yolu</title>
-    <!-- Google Fonts: Poppins ve Pacifico -->
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter (for general text) and Pacifico (for titles) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Pacifico&display=swap" rel="stylesheet">
     <style>
-        /* Genel Sayfa Stilleri */
+        /* Custom Tailwind Configuration (optional, but good for consistency) */
+        :root {
+            --color-primary: #e53e3e; /* Red */
+            --color-secondary: #ffb3b3; /* Light Red */
+            --color-background: #fde6e6; /* Very Light Pink */
+            --color-text-dark: #5c3b3b;
+            --color-text-light: #7a4a4a;
+            --color-player: #4299e1; /* Blue */
+            --color-success: #68d391; /* Green */
+            --color-warning: #f6ad55; /* Orange */
+        }
         body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #fde6e6; /* Açık pembe arka plan */
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            color: #5c3b3b;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-background);
+            color: var(--color-text-dark);
             text-align: center;
-            padding: 1rem;
             overflow: hidden;
         }
-
-        /* Başlık Stili */
         h1 {
             font-family: 'Pacifico', cursive;
-            color: #e53e3e; /* Kırmızı */
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
+            color: var(--color-primary);
         }
-
-        /* Talimatlar Stili */
-        p {
-            margin-top: 0;
-            font-size: 1rem;
-            color: #7a4a4a;
-        }
-
-        /* Oyun Alanı Konteyneri */
-        #game-container {
-            width: 90vw;
-            height: 60vh;
-            max-width: 500px;
-            max-height: 350px;
+        .game-container {
             background-color: #fff0f0;
-            border: 5px solid #ffb3b3;
-            border-radius: 15px;
-            position: relative;
+            border: 8px solid var(--color-secondary); /* Border made thicker */
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-            overflow: hidden; /* Mesaj kutularının taşmasını engeller */
+            overflow: hidden; /* Prevents overflow of message boxes */
         }
-
-        /* Oyuncu (Mert) Stili */
-        #player {
-            width: 30px;
-            height: 30px;
-            background-color: #4299e1; /* Mavi */
-            border-radius: 50%;
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            transition: all 0.1s linear;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: bold;
-            color: white;
-            z-index: 10;
+        .player {
+            background-color: var(--color-player);
+            transition: all 0.08s linear; /* Slightly faster transition for smoother feel */
+            box-shadow: 0 0 15px rgba(66, 153, 225, 0.6); /* Blue glow */
         }
-
-        /* Engel (Kırık Kalpler) Stili */
         .obstacle {
-            width: 35px;
-            height: 35px;
-            position: absolute;
             font-size: 30px;
-            line-height: 35px;
-            text-align: center;
+            line-height: 1; /* Adjust line-height for better emoji centering */
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
         }
-
-        /* Hedef (Çiçek) Stili */
-        #goal {
-            width: 40px;
-            height: 40px;
-            position: absolute;
+        .goal {
             font-size: 35px;
-            line-height: 40px;
-            text-align: center;
-            cursor: pointer;
+            line-height: 1;
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.7); /* Yellow glow */
         }
-
-        /* Genel Mesaj Kutusu Stili */
         .message-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.75);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            border-radius: 10px;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.5s, visibility 0.5s;
-            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.85); /* Darker overlay */
+            transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
             z-index: 20;
         }
-
         .message-overlay.visible {
             opacity: 1;
             visibility: visible;
         }
-        
         .message-overlay h2 {
             font-family: 'Pacifico', cursive;
-            font-size: 2rem;
-            margin-bottom: 1rem;
         }
-        
-        .message-overlay p {
-            font-size: 1.1rem;
-            color: #f7fafc; /* Çok açık gri */
-        }
-        
-        /* Başarı Mesaj Kutusu Özel Stilleri */
         #success-box h2 {
-             color: #68d391; /* Yeşil */
+            color: var(--color-success);
+        }
+        #collision-box h2 {
+            color: var(--color-primary);
         }
         #gemini-note {
-            background-color: rgba(255,255,255,0.1);
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 1rem;
             min-height: 80px;
             font-style: italic;
             color: #fde6e6;
         }
-
-        /* Çarpışma Mesaj Kutusu Özel Stilleri */
-        #collision-box h2 {
-            color: #e53e3e; /* Kırmızı */
-        }
-        
-        /* Gemini Butonu */
-        #generate-note-btn {
-            background-color: #f6ad55;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 20px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 1rem;
-            transition: background-color 0.3s;
-        }
-        #generate-note-btn:hover {
-            background-color: #dd6b20;
-        }
-        #generate-note-btn:disabled {
-            background-color: #999;
-            cursor: not-allowed;
-        }
-
-        /* Yükleme Animasyonu */
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #f6ad55;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin-top: 1rem;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .hidden {
-            display: none;
-        }
-
-        /* Mobil Kontrol Butonları */
-        #controls {
-            margin-top: 1rem;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(2, 1fr);
-            gap: 10px;
-            width: 180px;
-        }
         .control-btn {
-            width: 50px;
-            height: 50px;
-            background-color: #ffb3b3;
-            border: none;
-            border-radius: 50%;
-            color: white;
-            font-size: 1.5rem;
-            font-weight: bold;
-            cursor: pointer;
+            background-color: var(--color-secondary);
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-            transition: all 0.2s;
+            transition: all 0.2s ease-in-out;
         }
         .control-btn:active {
             transform: translateY(2px);
             box-shadow: 0 2px 4px rgba(0,0,0,0.15);
         }
-        #btn-up { grid-column: 2 / 3; grid-row: 1 / 2; }
-        #btn-left { grid-column: 1 / 2; grid-row: 2 / 3; }
-        #btn-down { grid-column: 2 / 3; grid-row: 2 / 3; }
-        #btn-right { grid-column: 3 / 4; grid-row: 2 / 3; }
+        .btn-action {
+            background-color: var(--color-warning);
+            color: white;
+            transition: background-color 0.3s ease-in-out, transform 0.1s ease-in-out;
+        }
+        .btn-action:hover {
+            background-color: #dd6b20;
+            transform: translateY(-1px);
+        }
+        .btn-action:active {
+            transform: translateY(1px);
+        }
+        .btn-action:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+        }
 
+        /* Joystick Styles */
+        #joystick-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            background-color: rgba(255, 179, 179, 0.7); /* Light red with transparency */
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            margin-top: 1.5rem;
+            touch-action: none; /* Prevents default browser touch actions like scrolling */
+        }
+
+        #joystick-thumb {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background-color: var(--color-primary); /* Red */
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            cursor: grab;
+            transition: background-color 0.1s ease-in-out;
+        }
+        #joystick-thumb:active {
+            cursor: grabbing;
+            background-color: #c53030; /* Darker red when active */
+        }
     </style>
 </head>
-<body>
+<body class="flex flex-col justify-center items-center min-h-screen p-4">
 
-    <h1>Barışma Yolu</h1>
-    <p>Mert'in Buse için çiçeği almasına yardım et. Kırık kalplere dikkat et!</p>
+    <h1 class="text-4xl md:text-5xl lg:text-6xl mb-2">Barışma Yolu</h1>
+    <p class="text-base md:text-lg text-gray-700 mb-4">Mert'in Buse için çiçeği almasına yardım et. Kırık kalplere dikkat et!</p>
 
-    <div id="game-container">
+    <div id="game-container" class="relative w-full h-64 sm:h-80 md:h-96 max-w-xl min-h-[300px] rounded-xl">
         <!-- Oyuncu (Mert) -->
-        <div id="player">M</div>
+        <div id="player" class="player w-8 h-8 md:w-10 md:h-10 rounded-full absolute flex justify-center items-center font-bold text-white text-sm md:text-base">🚶‍♂️</div>
 
-        <!-- Engeller (Kırık Kalpler) -->
-        <div class="obstacle" style="top: 50px; left: 80px;">💔</div>
-        <div class="obstacle" style="top: 150px; left: 40px;">💔</div>
-        <div class="obstacle" style="top: 200px; left: 150px;">💔</div>
-        <div class="obstacle" style="top: 100px; left: 250px;">💔</div>
-        <div class="obstacle" style="top: 50px; left: 350px;">💔</div>
-        <div class="obstacle" style="top: 250px; left: 300px;">💔</div>
+        <!-- Engeller (Kırık Kalpler) will be dynamically added by JS -->
 
         <!-- Hedef (Çiçek) -->
-        <div id="goal" style="bottom: 10px; right: 10px;">🌻</div>
+        <div id="goal" class="goal w-10 h-10 md:w-12 md:h-12 absolute flex justify-center items-center cursor-pointer" style="bottom: 10px; right: 10px;">🌹</div>
 
         <!-- Başarı Mesajı -->
-        <div id="success-box" class="message-overlay">
-            <h2>Başardın!</h2>
-            <p>Mert çiçeği aldı! Şimdi Buse'nin kalbini geri kazanma zamanı.</p>
-            <div id="gemini-note"></div>
-            <div id="loader" class="loader hidden"></div>
-            <button id="generate-note-btn">✨ Buse'ye Özel Bir Not Oluştur</button>
+        <div id="success-box" class="message-overlay absolute inset-0 flex-col p-5 rounded-xl hidden">
+            <h2 class="text-3xl md:text-4xl mb-4">Başardın!</h2>
+            <p class="text-lg md:text-xl text-gray-100 mb-4">Mert çiçeği aldı! Şimdi Buse'nin kalbini geri kazanma zamanı.</p>
+            <div id="gemini-note" class="bg-white bg-opacity-10 rounded-lg p-4 mt-4 w-full max-w-md text-sm md:text-base"></div>
+            <div id="loader" class="loader hidden border-4 border-t-4 border-gray-300 border-t-orange-500 rounded-full w-8 h-8 animate-spin mt-4"></div>
+            <button id="generate-note-btn" class="btn-action px-6 py-3 rounded-lg font-semibold text-lg mt-6">✨ Buse'ye Özel Bir Not Oluştur</button>
+            <button id="play-again-success-btn" class="btn-action px-6 py-3 rounded-lg font-semibold text-lg mt-4">Tekrar Oyna</button>
         </div>
         
         <!-- Çarpışma Mesajı -->
-        <div id="collision-box" class="message-overlay">
-            <h2>Eyvah!</h2>
-            <p>Kırık bir kalbe dokundun. Mert üzüldü, en baştan deniyor...</p>
+        <div id="collision-box" class="message-overlay absolute inset-0 flex-col p-5 rounded-xl hidden">
+            <h2 class="text-3xl md:text-4xl mb-4">Eyvah!</h2>
+            <p class="text-lg md:text-xl text-gray-100 mb-4">Kırık bir kalbe dokundun. En baştan deniyor...</p>
+            <button id="try-again-collision-btn" class="btn-action px-6 py-3 rounded-lg font-semibold text-lg mt-6">Tekrar Dene</button>
         </div>
 
     </div>
     
-    <!-- Mobil Kontroller -->
-    <div id="controls">
-        <button id="btn-up" class="control-btn">▲</button>
-        <button id="btn-left" class="control-btn">◄</button>
-        <button id="btn-down" class="control-btn">▼</button>
-        <button id="btn-right" class="control-btn">►</button>
+    <!-- Joystick Kontrolleri -->
+    <div id="joystick-container">
+        <div id="joystick-thumb"></div>
     </div>
 
     <script>
-        // Oyun elemanlarını seçme
+        // Game elements
         const player = document.getElementById('player');
         const goal = document.getElementById('goal');
-        const obstacles = document.querySelectorAll('.obstacle');
         const gameContainer = document.getElementById('game-container');
         const successBox = document.getElementById('success-box');
         const collisionBox = document.getElementById('collision-box');
@@ -278,56 +183,190 @@
         const geminiNoteEl = document.getElementById('gemini-note');
         const loader = document.getElementById('loader');
 
-        // Oyuncu ayarları
+        // Buttons
+        const playAgainSuccessBtn = document.getElementById('play-again-success-btn');
+        const tryAgainCollisionBtn = document.getElementById('try-again-collision-btn');
+
+        // Player settings
         let playerX = 10;
         let playerY = 10;
-        const playerSpeed = 15; // Hareket hızı
-        let gameOver = false;
+        const playerSpeed = 5; // Adjusted player speed for joystick control (can be fine-tuned)
+        let gameRunning = false;
+        let obstacles = []; // Array to hold dynamically created obstacle elements
+        const numObstacles = 3; // Number of obstacles
 
-        // Başlangıç pozisyonunu ayarla
+        // Obstacle movement variables
+        const obstacleSpeed = 1.5; // Speed of moving obstacles
+        let animationFrameId; // To store the requestAnimationFrame ID
+
+        // Joystick elements
+        const joystickContainer = document.getElementById('joystick-container');
+        const joystickThumb = document.getElementById('joystick-thumb');
+        let isJoystickActive = false;
+        let joystickCenterX, joystickCenterY;
+        let joystickRadius;
+
+        // Initial player position
         player.style.left = `${playerX}px`;
         player.style.top = `${playerY}px`;
 
         /**
-         * İki elementin çarpışıp çarpışmadığını kontrol eder.
+         * Initializes the joystick's position and radius.
+         */
+        function initializeJoystick() {
+            const containerRect = joystickContainer.getBoundingClientRect();
+            joystickCenterX = containerRect.left + containerRect.width / 2;
+            joystickCenterY = containerRect.top + containerRect.height / 2;
+            joystickRadius = containerRect.width / 2; // Radius of the container
+            
+            // Set initial thumb position to center
+            joystickThumb.style.left = `${joystickContainer.offsetWidth / 2 - joystickThumb.offsetWidth / 2}px`;
+            joystickThumb.style.top = `${joystickContainer.offsetHeight / 2 - joystickThumb.offsetHeight / 2}px`;
+        }
+
+        /**
+         * Creates a new obstacle element and adds it to the game container.
+         * Each obstacle gets a random initial position and a random velocity.
+         */
+        function createObstacle() {
+            const obstacle = document.createElement('div');
+            obstacle.classList.add('obstacle', 'absolute');
+            obstacle.textContent = '�';
+            
+            // Random initial position within container bounds
+            const containerRect = gameContainer.getBoundingClientRect();
+            const obstacleSize = 35; // Approximate size of the emoji
+            
+            let randomX = Math.random() * (containerRect.width - obstacleSize);
+            let randomY = Math.random() * (containerRect.height - obstacleSize);
+
+            // Ensure obstacles don't spawn on player or goal initially
+            // Using relative positions to gameContainer
+            const playerRelativeX = playerX;
+            const playerRelativeY = playerY;
+            const goalRelativeX = parseFloat(goal.style.right) ? containerRect.width - parseFloat(goal.style.right) - goal.offsetWidth : 0;
+            const goalRelativeY = parseFloat(goal.style.bottom) ? containerRect.height - parseFloat(goal.style.bottom) - goal.offsetHeight : 0;
+
+
+            // Simple check to avoid spawning too close to player or goal
+            while (
+                (Math.abs(randomX - playerRelativeX) < 100 && Math.abs(randomY - playerRelativeY) < 100) ||
+                (Math.abs(randomX - goalRelativeX) < 100 && Math.abs(randomY - goalRelativeY) < 100)
+            ) {
+                randomX = Math.random() * (containerRect.width - obstacleSize);
+                randomY = Math.random() * (containerRect.height - obstacleSize);
+            }
+
+            obstacle.style.left = `${randomX}px`;
+            obstacle.style.top = `${randomY}px`;
+            
+            // Random velocity for movement
+            obstacle.vx = (Math.random() - 0.5) * 2 * obstacleSpeed; // -obstacleSpeed to +obstacleSpeed
+            obstacle.vy = (Math.random() - 0.5) * 2 * obstacleSpeed;
+
+            gameContainer.appendChild(obstacle);
+            obstacles.push(obstacle);
+        }
+
+        /**
+         * Updates the position of all obstacles.
+         * Obstacles bounce off the container walls.
+         */
+        function updateObstacles() {
+            const containerRect = gameContainer.getBoundingClientRect();
+            obstacles.forEach(obstacle => {
+                let currentX = parseFloat(obstacle.style.left);
+                let currentY = parseFloat(obstacle.style.top);
+                const obstacleSize = obstacle.offsetWidth; // Get actual rendered width
+
+                let newX = currentX + obstacle.vx;
+                let newY = currentY + obstacle.vy;
+
+                // Bounce off horizontal walls
+                if (newX + obstacleSize > containerRect.width || newX < 0) {
+                    obstacle.vx *= -1;
+                    newX = currentX + obstacle.vx; // Re-calculate with new velocity
+                }
+                // Bounce off vertical walls
+                if (newY + obstacleSize > containerRect.height || newY < 0) {
+                    obstacle.vy *= -1;
+                    newY = currentY + obstacle.vy; // Re-calculate with new velocity
+                }
+
+                obstacle.style.left = `${newX}px`;
+                obstacle.style.top = `${newY}px`;
+            });
+        }
+
+        /**
+         * Game loop for animations.
+         */
+        function gameLoop() {
+            if (gameRunning) {
+                updateObstacles();
+                checkCollisions();
+            }
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        /**
+         * Checks if two elements are colliding.
          */
         function isColliding(el1, el2) {
             const rect1 = el1.getBoundingClientRect();
             const rect2 = el2.getBoundingClientRect();
+            const containerRect = gameContainer.getBoundingClientRect();
+
+            // Adjust rects to be relative to the game container
+            const el1RelativeRect = {
+                left: rect1.left - containerRect.left,
+                right: rect1.right - containerRect.left,
+                top: rect1.top - containerRect.top,
+                bottom: rect1.bottom - containerRect.top,
+                width: rect1.width,
+                height: rect1.height
+            };
+            const el2RelativeRect = {
+                left: rect2.left - containerRect.left,
+                right: rect2.right - containerRect.left,
+                top: rect2.top - containerRect.top,
+                bottom: rect2.bottom - containerRect.top,
+                width: rect2.width,
+                height: rect2.height
+            };
+
             return !(
-                rect1.right < rect2.left ||
-                rect1.left > rect2.right ||
-                rect1.bottom < rect2.top ||
-                rect1.top > rect2.bottom
+                el1RelativeRect.right < el2RelativeRect.left ||
+                el1RelativeRect.left > el2RelativeRect.right ||
+                el1RelativeRect.bottom < el2RelativeRect.top ||
+                el1RelativeRect.top > el2RelativeRect.top
             );
         }
 
         /**
-         * Oyuncuyu hareket ettiren ve çarpışmaları kontrol eden fonksiyon.
+         * Moves the player based on dx and dy values.
          */
-        function movePlayer(dx, dy) {
-            if (gameOver) return;
+        function updatePlayerPosition(dx, dy) {
+            if (!gameRunning) return;
 
-            const newX = playerX + dx;
-            const newY = playerY + dy;
-            
             const containerRect = gameContainer.getBoundingClientRect();
             const playerRect = player.getBoundingClientRect();
 
-            if (newX < 0 || newY < 0 || newX + playerRect.width > containerRect.width || newY + playerRect.height > containerRect.height) {
-                return;
-            }
+            let newX = playerX + dx;
+            let newY = playerY + dy;
+            
+            // Boundary checks
+            newX = Math.max(0, Math.min(newX, containerRect.width - playerRect.width));
+            newY = Math.max(0, Math.min(newY, containerRect.height - playerRect.height));
             
             playerX = newX;
             playerY = newY;
             player.style.left = `${playerX}px`;
             player.style.top = `${playerY}px`;
-
-            checkCollisions();
         }
         
         /**
-         * Tüm çarpışmaları kontrol eder.
+         * Checks all collisions (obstacles and goal).
          */
         function checkCollisions() {
             obstacles.forEach(obstacle => {
@@ -342,49 +381,85 @@
         }
 
         /**
-         * Çarpışma durumunu yönetir.
+         * Handles collision with an obstacle.
          */
         function handleCollision() {
-            gameOver = true;
-            collisionBox.classList.add('visible');
-            setTimeout(() => {
-                collisionBox.classList.remove('visible');
-                resetGame();
-            }, 2500); // 2.5 saniye sonra mesajı gizle ve oyunu sıfırla
+            if (!gameRunning) return; // Prevent multiple collision triggers
+            gameRunning = false;
+            showOverlay(collisionBox);
         }
 
         /**
-         * Başarı durumunu yönetir.
+         * Handles successful reach of the goal.
          */
         function handleSuccess() {
-            gameOver = true;
-            successBox.classList.add('visible');
+            if (!gameRunning) return; // Prevent multiple success triggers
+            gameRunning = false;
+            showOverlay(successBox);
         }
         
         /**
-         * Oyunu başlangıç durumuna sıfırlar.
+         * Displays a given message overlay.
+         */
+        function showOverlay(overlayElement) {
+            // Hide all overlays first
+            [successBox, collisionBox].forEach(box => box.classList.remove('visible', 'flex'));
+            [successBox, collisionBox].forEach(box => box.classList.add('hidden'));
+
+            overlayElement.classList.remove('hidden');
+            // Use a timeout to ensure display:flex is applied before opacity transition
+            setTimeout(() => {
+                overlayElement.classList.add('visible', 'flex');
+            }, 10); // Small delay
+        }
+
+        /**
+         * Hides all message overlays.
+         */
+        function hideOverlays() {
+            [successBox, collisionBox].forEach(box => {
+                box.classList.remove('visible', 'flex');
+                box.classList.add('hidden');
+            });
+        }
+
+        /**
+         * Resets the game to its initial state.
          */
         function resetGame() {
             playerX = 10;
             playerY = 10;
             player.style.left = `${playerX}px`;
             player.style.top = `${playerY}px`;
-            gameOver = false;
+            gameRunning = true;
+            hideOverlays();
+
+            // Clear existing obstacles and re-create them
+            obstacles.forEach(obs => obs.remove());
+            obstacles = [];
+            for (let i = 0; i < numObstacles; i++) {
+                createObstacle();
+            }
+            // Reset Gemini note display
+            geminiNoteEl.textContent = '';
+            generateNoteBtn.style.display = 'block'; // Show the button again
+            generateNoteBtn.disabled = false;
+            loader.classList.add('hidden');
         }
         
         /**
-         * Gemini API'sini kullanarak barışma notu oluşturur.
+         * Generates a reconciliation note using the Gemini API.
          */
         async function generateReconciliationNote() {
             generateNoteBtn.disabled = true;
             loader.classList.remove('hidden');
-            geminiNoteEl.textContent = '';
+            geminiNoteEl.textContent = ''; // Clear previous note
 
             const prompt = "Mert, sevgilisi Buse ile kavga etti ve barışmak için ona bir çiçek aldı. Şimdi ona romantik, içten ve kısa bir barışma notu yazmak istiyor. Sadece notu yaz, ek bir açıklama yapma.";
             
             let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
             const payload = { contents: chatHistory };
-            const apiKey = ""; // API anahtarı Canvas tarafından sağlanacaktır
+            const apiKey = ""; // API key will be provided by Canvas runtime
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
             
             try {
@@ -414,29 +489,87 @@
                 geminiNoteEl.textContent = "Şu anda romantik kelimeler bulmakta zorlanıyorum, ama bu çiçek kalbimden geliyor.";
             } finally {
                 loader.classList.add('hidden');
-                // Butonu tekrar aktif etmeye gerek yok, tek seferlik bir jest.
-                generateNoteBtn.style.display = 'none'; // Butonu gizle
+                generateNoteBtn.style.display = 'none'; // Hide the button after generation
             }
         }
 
-        // Klavye olaylarını dinleme
-        document.addEventListener('keydown', (e) => {
-            switch (e.key) {
-                case 'ArrowUp': case 'w': movePlayer(0, -playerSpeed); break;
-                case 'ArrowDown': case 's': movePlayer(0, playerSpeed); break;
-                case 'ArrowLeft': case 'a': movePlayer(-playerSpeed, 0); break;
-                case 'ArrowRight': case 'd': movePlayer(playerSpeed, 0); break;
+        // Joystick Event Handlers
+        function onJoystickStart(e) {
+            if (!gameRunning) return;
+            isJoystickActive = true;
+            // Prevent default touch behavior (e.g., scrolling)
+            e.preventDefault(); 
+            // Recalculate joystick center on touch start to handle potential resize/reposition
+            initializeJoystick(); 
+        }
+
+        function onJoystickMove(e) {
+            if (!isJoystickActive || !gameRunning) return;
+
+            // Get current touch/mouse position
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            // Calculate distance from joystick center
+            let deltaX = clientX - joystickCenterX;
+            let deltaY = clientY - joystickCenterY;
+
+            // Limit thumb position within the joystick container
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            if (distance > joystickRadius) {
+                const angle = Math.atan2(deltaY, deltaX);
+                deltaX = joystickRadius * Math.cos(angle);
+                deltaY = joystickRadius * Math.sin(angle);
             }
-        });
 
-        // Mobil kontrol butonlarını dinleme
-        document.getElementById('btn-up').addEventListener('click', () => movePlayer(0, -playerSpeed));
-        document.getElementById('btn-down').addEventListener('click', () => movePlayer(0, playerSpeed));
-        document.getElementById('btn-left').addEventListener('click', () => movePlayer(-playerSpeed, 0));
-        document.getElementById('btn-right').addEventListener('click', () => movePlayer(playerSpeed, 0));
+            // Update thumb position
+            joystickThumb.style.left = `${joystickContainer.offsetWidth / 2 - joystickThumb.offsetWidth / 2 + deltaX}px`;
+            joystickThumb.style.top = `${joystickContainer.offsetHeight / 2 - joystickThumb.offsetHeight / 2 + deltaY}px`;
 
-        // Gemini butonu olay dinleyicisi
+            // Calculate player movement based on joystick position
+            // Normalize deltaX and deltaY to a range of -1 to 1, then multiply by playerSpeed
+            const normalizedDx = deltaX / joystickRadius;
+            const normalizedDy = deltaY / joystickRadius;
+            updatePlayerPosition(normalizedDx * playerSpeed, normalizedDy * playerSpeed);
+        }
+
+        function onJoystickEnd() {
+            isJoystickActive = false;
+            // Reset thumb to center
+            joystickThumb.style.left = `${joystickContainer.offsetWidth / 2 - joystickThumb.offsetWidth / 2}px`;
+            joystickThumb.style.top = `${joystickContainer.offsetHeight / 2 - joystickThumb.offsetHeight / 2}px`;
+            // Stop player movement
+            updatePlayerPosition(0, 0);
+        }
+
+        // Joystick Event Listeners
+        joystickContainer.addEventListener('touchstart', onJoystickStart, { passive: false });
+        joystickContainer.addEventListener('touchmove', onJoystickMove, { passive: false });
+        joystickContainer.addEventListener('touchend', onJoystickEnd);
+        joystickContainer.addEventListener('mousedown', onJoystickStart);
+        joystickContainer.addEventListener('mousemove', onJoystickMove);
+        joystickContainer.addEventListener('mouseup', onJoystickEnd);
+        // Also listen for mouseleave to stop movement if mouse leaves the container while dragging
+        joystickContainer.addEventListener('mouseleave', onJoystickEnd);
+
+
+        // Gemini button event listener
         generateNoteBtn.addEventListener('click', generateReconciliationNote);
+
+        // Play Again buttons
+        playAgainSuccessBtn.addEventListener('click', resetGame);
+        tryAgainCollisionBtn.addEventListener('click', resetGame);
+
+
+        // Initialize game on load
+        window.onload = function() {
+            resetGame(); // Set up initial game state and obstacles
+            initializeJoystick(); // Initialize joystick position
+            gameLoop(); // Start the animation loop
+        };
+
+        // Re-initialize joystick on window resize to ensure correct positioning
+        window.addEventListener('resize', initializeJoystick);
 
     </script>
 
